@@ -59,7 +59,7 @@ CREATE TABLE journal1 (
 );
 
 -- load file 
-LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/medline17n0001.xml' 
+LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/medline17n0001.xml' 
 INTO TABLE journal1
 LINES STARTING BY '<PubmedArticle>' TERMINATED BY '</PubmedArticle>'
 (@tmp)
@@ -111,7 +111,6 @@ CREATE TABLE newpub (
     PubDateYear varchar(255) NOT NULL,  
     PubDateMonth varchar(255) ,
     ArticleTitle varchar(255) NOT NULL,
-    -- text is used for more characters
     AbstractText text,
     MeshHeadingDescriptorName text,
     MeshHeadingQualifierName varchar(255)
@@ -158,36 +157,79 @@ order by PubDateYear, PubDateMonth;
 -- consider create a table with all mesh terms & UID: too many mesh terms 
 select ExtractValue(@tmp, '//DescriptorName');
 
-----FAILURE---
--- DELIMITER |
--- DECLARE i INT DEFAULT 1;
--- DECLARE count DEFAULT ExtractValue(@newpubTry, 'count(//DescriptorName)');
--- WHILE i <= count DO
--- SELECT ExtractValue(xml, '//DescriptorName[$i]');
--- SET i = i+1;
--- END WHILE
--- | DELIMITER;
-----FAILURE---
-
-----FAILURE---
--- DELIMITER //
--- CREATE PROCEDURE mesh_extract(var1 INT) 
--- BEGIN   
---     DECLARE start  INT unsigned DEFAULT 1;  
---     DECLARE finish INT unsigned DEFAULT 10;
-
---     SELECT  var1, start, finish;
-
---     SELECT * FROM places WHERE place BETWEEN start AND finish; 
--- END; //
--- DELIMITER ;
-----FAILURE---
-
+-- Concatenate
 SELECT CONCAT_WS(',','First name','Second name','Last Name');
-
 select ExtractValue(@newpubTry, CONCAT_WS('| ','//DescriptorName')); -- no effect
 
-CREATE TABLE newpubTry (
+
+-- CREATE TABLE newpubTry (
+--     PMID int PRIMARY KEY,
+--     JournalTitle varchar(255) NOT NULL,
+--     ISOAbbreviation varchar(255) NOT NULL,
+--     ISSN varchar(255) NOT NULL, 
+--     PubDateYear varchar(255) NOT NULL,  
+--     PubDateMonth varchar(255) ,
+--     ArticleTitle varchar(255) NOT NULL,
+--     AbstractText text,
+--     MeshHeadingDescriptorName enum('yes','no') DEFAULT 'yes', -- no work 
+--     MeshHeadingQualifierName varchar(255)
+-- );
+-- LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/try.xml' 
+-- INTO TABLE newpubTry
+-- LINES STARTING BY '<PubmedArticle>' TERMINATED BY '</PubmedArticle>'
+-- (@newpubTry)
+-- SET 
+-- PMID = ExtractValue(@newpubTry, '//PMID'),
+-- JournalTitle = ExtractValue(@newpubTry, '//Journal/Title'),
+-- ISOAbbreviation = ExtractValue(@newpubTry, '//ISOAbbreviation'),
+-- ISSN = ExtractValue(@newpubTry, '//ISSN'),
+-- PubDateYear = ExtractValue(@newpubTry, '//PubDate/Year'),
+-- PubDateMonth = ExtractValue(@newpubTry, '//PubDate/Month'),
+-- ArticleTitle = ExtractValue(@newpubTry, '//ArticleTitle'),
+-- AbstractText = ExtractValue(@newpubTry, '//AbstractText'),
+-- MeshHeadingDescriptorName = ExtractValue(@newpubTry, '//MeshHeading/DescriptorName'),
+-- MeshHeadingQualifierName = ExtractValue(@newpubTry, '//MeshHeading/QualifierName');
+
+
+-- function about MySQL xpath ExtractValue with delimiter -- failure 
+-- DROP FUNCTION IF EXISTS EXTRACTVALUE_ALL;
+-- DELIMITER |
+-- CREATE FUNCTION EXTRACTVALUE_ALL(p_xml TEXT, p_xpathExpr TEXT, p_delimiter TEXT) RETURNS TEXT
+-- BEGIN
+-- DECLARE total_elements INT;
+-- DECLARE xpath_expression_count, xpath_expression_index  TEXT;
+-- DECLARE single_tag, result  TEXT;
+-- SET xpath_expression_count = CONCAT('count(', p_xpathExpr, ')');
+-- SELECT EXTRACTVALUE(p_xml, xpath_expression_count) INTO total_elements;
+-- SET result = '';
+-- SET xpath_expression_index = CONCAT(p_xpathExpr, '[$@i]');
+-- SET @i = 1;
+-- WHILE @i <= total_elements DO
+-- SET single_tag = EXTRACTVALUE(p_xml, xpath_expression_index);
+-- SET result = IF(result='', single_tag, CONCAT(result, p_delimiter, single_tag));
+-- SET @i = @i + 1;
+-- END WHILE;
+-- RETURN result;
+-- END |
+-- DELIMITER ;
+
+-- select EXTRACTVALUE_ALL(@newpubTry, '//DescriptorName', '|');
+-- result: Cell Membrane Permeability Diphosphoglyceric Acids Erythrocytes Humans Hydrogen-Ion Concentration Membrane Potentials|||||
+-- (6 mesh, 5 delimiters)
+
+    
+-- 3. combine tables created from different xml files 
+create table journal12
+select * from journal1 
+union all 
+select * from journal2;
+-- (60000 rows; 30000 rows from journal2, 30000 rows from journal1)
+
+
+-----------------------------------------
+2017-8-28
+-- 1. use sample file create table MASTER
+CREATE TABLE MASTER (
     PMID int PRIMARY KEY,
     JournalTitle varchar(255) NOT NULL,
     ISOAbbreviation varchar(255) NOT NULL,
@@ -195,52 +237,84 @@ CREATE TABLE newpubTry (
     PubDateYear varchar(255) NOT NULL,  
     PubDateMonth varchar(255) ,
     ArticleTitle varchar(255) NOT NULL,
-    AbstractText text,
-    MeshHeadingDescriptorName enum('yes','no') DEFAULT 'yes', -- no work 
-    MeshHeadingQualifierName varchar(255)
+    AbstractText text
 );
 
-LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/try.xml' 
-INTO TABLE newpubTry
+LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/medsample1.xml' 
+INTO TABLE MASTER
 LINES STARTING BY '<PubmedArticle>' TERMINATED BY '</PubmedArticle>'
-(@newpubTry)
+(@mas)
 SET 
-PMID = ExtractValue(@newpubTry, '//PMID'),
-JournalTitle = ExtractValue(@newpubTry, '//Journal/Title'),
-ISOAbbreviation = ExtractValue(@newpubTry, '//ISOAbbreviation'),
-ISSN = ExtractValue(@newpubTry, '//ISSN'),
-PubDateYear = ExtractValue(@newpubTry, '//PubDate/Year'),
-PubDateMonth = ExtractValue(@newpubTry, '//PubDate/Month'),
-ArticleTitle = ExtractValue(@newpubTry, '//ArticleTitle'),
-AbstractText = ExtractValue(@newpubTry, '//AbstractText'),
-MeshHeadingDescriptorName = ExtractValue(@newpubTry, '//MeshHeading/DescriptorName'),
-MeshHeadingQualifierName = ExtractValue(@newpubTry, '//MeshHeading/QualifierName');
+PMID = ExtractValue(@mas, '//PMID'),
+JournalTitle = ExtractValue(@mas, '//Journal/Title'),
+ISOAbbreviation = ExtractValue(@mas, '//ISOAbbreviation'),
+ISSN = ExtractValue(@mas, '//ISSN'),
+PubDateYear = ExtractValue(@mas, '//PubDate/Year'),
+PubDateMonth = ExtractValue(@mas, '//PubDate/Month'),
+ArticleTitle = ExtractValue(@mas, '//ArticleTitle'),
+AbstractText = ExtractValue(@mas, '//AbstractText');
 
 
--- function about MySQL xpath ExtractValue with delimiter
-DROP FUNCTION IF EXISTS EXTRACTVALUE_ALL;
-DELIMITER |
-CREATE FUNCTION EXTRACTVALUE_ALL(p_xml TEXT, p_xpathExpr TEXT, p_delimiter TEXT) RETURNS TEXT
-BEGIN
-DECLARE total_elements INT;
-DECLARE xpath_expression_count, xpath_expression_index  TEXT;
-DECLARE single_tag, result  TEXT;
-SET xpath_expression_count = CONCAT('count(', p_xpathExpr, ')');
-SELECT EXTRACTVALUE(p_xml, xpath_expression_count) INTO total_elements;
-SET result = '';
-SET xpath_expression_index = CONCAT(p_xpathExpr, '[$@i]');
-SET @i = 1;
-WHILE @i <= total_elements DO
-SET single_tag = EXTRACTVALUE(p_xml, xpath_expression_index);
-SET result = IF(result='', single_tag, CONCAT(result, p_delimiter, single_tag));
-SET @i = @i + 1;
-END WHILE;
-RETURN result;
-END |
-DELIMITER ;
+-- 2. MeshDescriptor with 4 columns: id, PMID, UI, Major
+CREATE table MeshDescriptor (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    PMID int NOT NULL,
+    UI varchar(255),
+    Major varchar(255)
+);
 
-select EXTRACTVALUE_ALL(@newpubTry, '//DescriptorName', '|');
-result: Cell Membrane Permeability Diphosphoglyceric Acids Erythrocytes Humans Hydrogen-Ion Concentration Membrane Potentials|||||
+LOAD DATA LOCAL INFILE  '/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/medsample1.xml' 
+INTO TABLE MeshDescriptor
+LINES STARTING BY '<PubmedArticle>' TERMINATED BY '</PubmedArticle>'
+(@meshd)
+SET 
+PMID = ExtractValue(@meshd, '//PMID'),
+UI = ExtractValue(@meshd, '//MeshHeading/DescriptorName/@UI'),
+Major = ExtractValue(@meshd, '//MeshHeading/DescriptorName/@MajorTopicYN');
+
+-- currently like:  1 | 1669026 | D000047 D001530 | Y N  
+----------------------------------------------------------------------------
 
 
--- 3. check if we could combine xml files 
+-----------------------------------------
+2017-8-30
+-- 1. try example on StackOverflow
+-- Failed
+
+-- 2. try use only 2nd and 3rd column as examples.
+
+
+-----------------------------------------
+2017-8-31
+-- 1. use python to extract the features and save as csv file 
+
+-- 2. load the csv file and create table of sampleMesh 
+CREATE table sampleMesh (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    PMID int NOT NULL,
+    UI varchar(255),
+    Major varchar(255)
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/sampleMesh.csv"
+INTO TABLE sampleMesh
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+--IGNORE 1 rows;
+
+-- 2. load the csv file and create table of sampleMesh 
+CREATE table sampleChemical (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    PMID int NOT NULL,
+    RegistryNumber varchar(255),
+    NameOfSubstanceUI varchar(255)
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/sampleChemical.csv"
+INTO TABLE sampleChemical
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+
+
+
+
