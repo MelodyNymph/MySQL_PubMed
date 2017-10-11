@@ -302,7 +302,7 @@ COLUMNS TERMINATED BY ','
 LINES TERMINATED BY '\n';
 --IGNORE 1 rows;
 
--- 2. load the csv file and create table of sampleMesh 
+-- 2. load the csv file and create table of sampleChemical 
 CREATE table sampleChemical (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     PMID int NOT NULL,
@@ -316,5 +316,62 @@ COLUMNS TERMINATED BY ','
 LINES TERMINATED BY '\n';
 
 
+-----------------------------------------
+2017-9-4
+-- 1. create descMaster table: DescriptorUI，DescriptorName
+CREATE TABLE descMaster (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    DescriptorUI varchar(255) NOT NULL,
+    DescriptorName varchar(255) NOT NULL
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/desc2017master.csv"
+INTO TABLE descMaster
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+
+-- 2. create descQualifier table: id, DescriptorUI, QualifierUI, QualifierName
+CREATE TABLE descQualifier (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    DescriptorUI varchar(255) NOT NULL,
+    QualifierUI varchar(255) NOT NULL,
+    QualifierName varchar(255) NOT NULL
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/MYSQL/PUBMEDFILE/descQualifier.csv"
+INTO TABLE descQualifier
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+
+--create descTree table: DescriptorUI，TreeNumber 
+CREATE TABLE descTree (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    DescriptorUI varchar(255) NOT NULL,
+    TreeNumber varchar(255) NOT NULL
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/IQSS/MYSQL/PUBMEDFILE/desc2017TreeNumber.csv"
+INTO TABLE descTree
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+-----------------------------------------
+2017-10-10
+-- load file into the cluster database
+--
+LOAD DATA LOCAL INFILE  '/n/regal/lakhani_lab/melodynymph/medline17n0593.xml' 
+INTO TABLE ..
+--
+-- create PMID AND UI table
+CREATE table medline17n0001PMIDMESH (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    PMID int NOT NULL,
+    UI varchar(255),
+    Major varchar(255)
+);
+
+LOAD DATA LOCAL INFILE "/Users/ruizhao/Desktop/IQSS/MYSQL/PUBMEDFILE/medline17n0001PMIDMESH.csv"
+INTO TABLE medline17n0001PMIDMESH
+COLUMNS TERMINATED BY ','
+LINES TERMINATED BY '\n';
 
 
